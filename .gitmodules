@@ -1,3 +1,9 @@
 [submodule "ROS-TCP-Endpoint"]
 	path = ROS-TCP-Endpoint
 	url = https://github.com/Unity-Technologies/ROS-TCP-Endpoint
+[submodule "orb_slam3_ros"]
+	path = orb_slam3_ros
+	url = https://github.com/Yanshee-Serenade/ORB-SLAM3-ROS
+[submodule "serenade"]
+	path = serenade
+	url = https://github.com/Yanshee-Serenade/Serenade-ROS
