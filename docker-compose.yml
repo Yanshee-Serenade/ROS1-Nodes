@@ -1,6 +1,6 @@
 services:
   orbslam3:
-    image: orbslam3_ros:v10
+    image: orbslam3_ros:v12
     container_name: orbslam3
     hostname: orbslam3
     network_mode: "host"
@@ -13,6 +13,6 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /etc/localtime:/etc/localtime:ro
-    command: bash /orbslam3_init.sh
+    command: bash /init.sh
     tty: true
     stdin_open: true
