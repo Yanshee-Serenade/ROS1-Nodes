@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       network: host
     image: orbslam3_ros:v12
+    container_name: orbslam3
     hostname: orbslam3
     network_mode: "host"
     privileged: true
