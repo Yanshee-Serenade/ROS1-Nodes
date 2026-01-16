@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     sensor_type = ORB_SLAM3::System::IMU_MONOCULAR;
-    pSLAM = new ORB_SLAM3::System(voc_file, settings_file, sensor_type, enable_pangolin);
+    pSLAM = new ORB_SLAM3::System(voc_file, settings_file, sensor_type, "", enable_pangolin);
 
     ImuGrabber imugb;
     ImageGrabber igb(&imugb);

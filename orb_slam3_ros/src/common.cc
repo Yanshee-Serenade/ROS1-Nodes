@@ -1,5 +1,5 @@
 /**
-* 
+*
 * Common functions and variables across all modes (mono/stereo, with or w/o imu)
 *
 */
@@ -60,6 +60,7 @@ void setup_services(ros::NodeHandle &node_handler, std::string node_name)
 {
     static ros::ServiceServer save_map_service = node_handler.advertiseService(node_name + "/save_map", save_map_srv);
     static ros::ServiceServer save_traj_service = node_handler.advertiseService(node_name + "/save_traj", save_traj_srv);
+    static ros::ServiceServer get_tracking_data_service = node_handler.advertiseService(node_name + "/get_tracking_data", get_tracking_data_srv);
 }
 
 void setup_publishers(ros::NodeHandle &node_handler, image_transport::ImageTransport &image_transport, std::string node_name)
@@ -88,7 +89,7 @@ void publish_topics(ros::Time msg_time, Eigen::Vector3f Wbb)
 
     if (Twc.translation().array().isNaN()[0] || Twc.rotationMatrix().array().isNaN()(0,0)) // avoid publishing NaN
         return;
-    
+
     // Common topics
     publish_camera_pose(Twc, msg_time);
     publish_tf_transform(Twc, world_frame_id, cam_frame_id, msg_time);
@@ -185,7 +186,7 @@ void publish_tracking_img(cv::Mat image, ros::Time msg_time)
 }
 
 void publish_keypoints(std::vector<ORB_SLAM3::MapPoint*> tracked_map_points, std::vector<cv::KeyPoint> tracked_keypoints, ros::Time msg_time)
-{   
+{
     std::vector<cv::KeyPoint> finalKeypoints;
 
     int numKFs = tracked_keypoints.size();
@@ -210,7 +211,7 @@ void publish_keypoints(std::vector<ORB_SLAM3::MapPoint*> tracked_map_points, std
 
     // Display the image (optional)
     //cv::imshow("Keypoints", blankImg);
-    //cv::waitKey(1);  
+    //cv::waitKey(1);
 
     sensor_msgs::PointCloud2 cloud = keypoints_to_pointcloud(finalKeypoints, msg_time);
 
@@ -221,14 +222,14 @@ void publish_keypoints(std::vector<ORB_SLAM3::MapPoint*> tracked_map_points, std
 void publish_tracked_points(std::vector<ORB_SLAM3::MapPoint*> tracked_points, ros::Time msg_time)
 {
     sensor_msgs::PointCloud2 cloud = mappoint_to_pointcloud(tracked_points, msg_time);
-    
+
     tracked_mappoints_pub.publish(cloud);
 }
 
 void publish_all_points(std::vector<ORB_SLAM3::MapPoint*> map_points, ros::Time msg_time)
 {
     sensor_msgs::PointCloud2 cloud = mappoint_to_pointcloud(map_points, msg_time);
-    
+
     all_mappoints_pub.publish(cloud);
 }
 
@@ -238,7 +239,7 @@ void publish_kf_markers(std::vector<Sophus::SE3f> vKFposes, ros::Time msg_time)
     int numKFs = vKFposes.size();
     if (numKFs == 0)
         return;
-    
+
     visualization_msgs::Marker kf_markers;
     kf_markers.header.frame_id = world_frame_id;
     kf_markers.ns = "kf_markers";
@@ -262,7 +263,7 @@ void publish_kf_markers(std::vector<Sophus::SE3f> vKFposes, ros::Time msg_time)
         kf_marker.z = vKFposes[i].translation().z();
         kf_markers.points.push_back(kf_marker);
     }
-    
+
     kf_markers_pub.publish(kf_markers);
 }
 
@@ -276,7 +277,7 @@ sensor_msgs::PointCloud2 keypoints_to_pointcloud(std::vector<cv::KeyPoint>& keyp
     sensor_msgs::PointCloud2 cloud;
 
     cloud.header.stamp = msg_time;
-    cloud.header.frame_id = world_frame_id; 
+    cloud.header.frame_id = world_frame_id;
     cloud.height = 1;
     cloud.width = keypoints.size();
     cloud.is_bigendian = false;
@@ -374,7 +375,7 @@ cv::Mat SE3f_to_cvMat(Sophus::SE3f T_SE3f)
 
     Eigen::Matrix4f T_Eig3f = T_SE3f.matrix();
     cv::eigen2cv(T_Eig3f, T_cvmat);
-    
+
     return T_cvmat;
 }
 
@@ -396,4 +397,178 @@ tf::Transform SE3f_to_tfTransform(Sophus::SE3f T_SE3f)
     );
 
     return tf::Transform(R_tf, t_tf);
+}
+
+// 新增：获取跟踪数据服务的回调函数
+bool get_tracking_data_srv(orb_slam3_ros::GetTrackingData::Request &req,
+                           orb_slam3_ros::GetTrackingData::Response &res)
+{
+    // 1. 初始化服务响应（默认success为true，内参直接赋值）
+    res.success = true;
+
+    // 2. 获取当前相机位姿（复用现有逻辑，避免NaN）
+    Sophus::SE3f Twc = pSLAM->GetCamTwc();
+    if (Twc.translation().array().isNaN()[0] || Twc.rotationMatrix().array().isNaN()(0,0))
+    {
+        // 相机位姿无效，返回空位姿，标记对应字段为空
+        ROS_WARN("Camera pose contains NaN, return empty pose.");
+    }
+    else
+    {
+        // 填充相机位姿数据（与publish_camera_pose逻辑一致）
+        res.camera_pose.header.frame_id = world_frame_id;
+        res.camera_pose.header.stamp = ros::Time::now(); // 使用当前时间戳
+        res.camera_pose.pose.position.x = Twc.translation().x();
+        res.camera_pose.pose.position.y = Twc.translation().y();
+        res.camera_pose.pose.position.z = Twc.translation().z();
+        res.camera_pose.pose.orientation.w = Twc.unit_quaternion().coeffs().w();
+        res.camera_pose.pose.orientation.x = Twc.unit_quaternion().coeffs().x();
+        res.camera_pose.pose.orientation.y = Twc.unit_quaternion().coeffs().y();
+        res.camera_pose.pose.orientation.z = Twc.unit_quaternion().coeffs().z();
+    }
+
+    // 3. 获取当前跟踪图像（与publish_tracking_img逻辑一致）
+    cv::Mat current_cv_image = pSLAM->GetOriginalFrame();
+    if (current_cv_image.empty())
+    {
+        ROS_WARN("Current original image is empty, return empty image.");
+    }
+    else
+    {
+        // 转换cv::Mat到sensor_msgs/Image（复用cv_bridge）
+        std_msgs::Header img_header;
+        img_header.stamp = ros::Time::now();
+        img_header.frame_id = world_frame_id;
+        try
+        {
+            res.current_image = *cv_bridge::CvImage(img_header, "bgr8", current_cv_image).toImageMsg();
+        }
+        catch (cv_bridge::Exception &e)
+        {
+            ROS_ERROR("cv_bridge conversion failed: %s", e.what());
+            res.success = false;
+        }
+    }
+
+    // 4. 获取跟踪点原始数据并做有效性校验
+    std::vector<ORB_SLAM3::MapPoint*> tracked_map_points = pSLAM->GetTrackedMapPoints();
+    std::vector<cv::KeyPoint> tracked_keypoints = pSLAM->GetTrackedKeyPoints();
+    if (tracked_map_points.empty() || tracked_keypoints.empty() || tracked_map_points.size() != tracked_keypoints.size())
+    {
+        ROS_WARN("Tracked points data is invalid, return empty PointCloud2.");
+        // 返回空的PointCloud2（ROS默认初始化即为空）
+        return res.success;
+    }
+
+    // ======================================
+    // 核心修改1：遵循publish_keypoints逻辑，筛选合法点（过滤nullptr的MapPoint）
+    // ======================================
+    std::vector<ORB_SLAM3::MapPoint*> valid_tracked_map_points;  // 存储合法地图点
+    std::vector<cv::KeyPoint> valid_tracked_keypoints;            // 存储对应合法关键点
+    for (size_t i = 0; i < tracked_map_points.size(); i++) {
+        if (tracked_map_points[i]) {  // 与publish_keypoints一致：仅保留非空MapPoint对应的点
+            valid_tracked_map_points.push_back(tracked_map_points[i]);
+            valid_tracked_keypoints.push_back(tracked_keypoints[i]);
+        }
+    }
+
+    // 若筛选后无合法点，直接返回空PointCloud2
+    if (valid_tracked_map_points.empty()) {
+        ROS_WARN("No valid tracked points after filtering, return empty PointCloud2.");
+        return res.success;
+    }
+
+    // 5. 填充跟踪点相机坐标（tracked_points_camera：像素x/y + 相机深度z）
+    // 5.1 初始化相机坐标PointCloud2（严格满足格式要求，使用筛选后的合法点数量）
+    sensor_msgs::PointCloud2 &camera_cloud = res.tracked_points_camera;
+    const int num_channels = 3; // x:像素x, y:像素y, z:相机深度
+    camera_cloud.header.stamp = ros::Time::now();
+    camera_cloud.header.frame_id = world_frame_id;
+    camera_cloud.height = 1;
+    camera_cloud.width = valid_tracked_map_points.size();  // 核心修改2：使用筛选后的合法点数量
+    camera_cloud.is_bigendian = false;
+    camera_cloud.is_dense = true;
+    camera_cloud.point_step = num_channels * sizeof(float); // 每个点占12字节（3*4）
+    camera_cloud.row_step = camera_cloud.point_step * camera_cloud.width;
+    camera_cloud.fields.resize(num_channels);
+
+    // 5.2 配置相机坐标PointCloud2字段（偏移量0、4、8，float32类型）
+    camera_cloud.fields[0].name = "x";
+    camera_cloud.fields[0].offset = 0;
+    camera_cloud.fields[0].count = 1;
+    camera_cloud.fields[0].datatype = sensor_msgs::PointField::FLOAT32;
+
+    camera_cloud.fields[1].name = "y";
+    camera_cloud.fields[1].offset = 4;
+    camera_cloud.fields[1].count = 1;
+    camera_cloud.fields[1].datatype = sensor_msgs::PointField::FLOAT32;
+
+    camera_cloud.fields[2].name = "z";
+    camera_cloud.fields[2].offset = 8;
+    camera_cloud.fields[2].count = 1;
+    camera_cloud.fields[2].datatype = sensor_msgs::PointField::FLOAT32;
+
+    // 5.3 分配相机坐标PointCloud2数据内存（基于合法点数量）
+    camera_cloud.data.resize(camera_cloud.row_step * camera_cloud.height);
+    unsigned char *camera_cloud_ptr = &(camera_cloud.data[0]);
+
+    // 6. 填充跟踪点世界坐标（tracked_points_world：世界坐标系x/y/z）
+    // 6.1 初始化世界坐标PointCloud2（格式与相机坐标一致，使用筛选后的合法点数量）
+    sensor_msgs::PointCloud2 &world_cloud = res.tracked_points_world;
+    world_cloud.header.stamp = ros::Time::now();
+    world_cloud.header.frame_id = world_frame_id;
+    world_cloud.height = 1;
+    world_cloud.width = valid_tracked_map_points.size();  // 核心修改3：使用筛选后的合法点数量
+    world_cloud.is_bigendian = false;
+    world_cloud.is_dense = true;
+    world_cloud.point_step = num_channels * sizeof(float); // 每个点占12字节（3*4）
+    world_cloud.row_step = world_cloud.point_step * world_cloud.width;
+    world_cloud.fields.resize(num_channels);
+
+    // 6.2 配置世界坐标PointCloud2字段（偏移量0、4、8，float32类型）
+    world_cloud.fields[0].name = "x";
+    world_cloud.fields[0].offset = 0;
+    world_cloud.fields[0].count = 1;
+    world_cloud.fields[0].datatype = sensor_msgs::PointField::FLOAT32;
+
+    world_cloud.fields[1].name = "y";
+    world_cloud.fields[1].offset = 4;
+    world_cloud.fields[1].count = 1;
+    world_cloud.fields[1].datatype = sensor_msgs::PointField::FLOAT32;
+
+    world_cloud.fields[2].name = "z";
+    world_cloud.fields[2].offset = 8;
+    world_cloud.fields[2].count = 1;
+    world_cloud.fields[2].datatype = sensor_msgs::PointField::FLOAT32;
+
+    // 6.3 分配世界坐标PointCloud2数据内存（基于合法点数量）
+    world_cloud.data.resize(world_cloud.row_step * world_cloud.height);
+    unsigned char *world_cloud_ptr = &(world_cloud.data[0]);
+
+    // 7. 批量填充相机坐标和世界坐标数据（遍历筛选后的合法点，无需再判断nullptr）
+    Sophus::SE3f Tcw = Twc.inverse(); // 世界→相机 转换矩阵（Twc是相机→世界，逆变换为世界→相机）
+    for (unsigned int i = 0; i < camera_cloud.width; i++)  // 遍历筛选后的合法点数量
+    {
+        // ======================================
+        // 核心修改4：直接使用筛选后的合法点数据，无需再判断nullptr（已提前过滤）
+        // ======================================
+        // 7.1 填充相机坐标数据（像素x/y + 相机深度z）
+        Eigen::Vector3f Pw = valid_tracked_map_points[i]->GetWorldPos(); // 世界坐标系下3D点（必合法）
+        Eigen::Vector3f Pc = Tcw * Pw; // 转换到相机坐标系（Pc = Tcw * Pw）
+        float pixel_x = static_cast<float>(valid_tracked_keypoints[i].pt.x);
+        float pixel_y = static_cast<float>(valid_tracked_keypoints[i].pt.y);
+
+        float camera_depth_z = Pc.z(); // 相机深度：相机坐标系下z轴分量
+        float camera_data[3] = {pixel_x, pixel_y, camera_depth_z};
+        memcpy(camera_cloud_ptr + (i * camera_cloud.point_step), camera_data, num_channels * sizeof(float));
+
+        // 7.2 填充世界坐标数据（直接使用MapPoint的世界坐标x/y/z）
+        float world_x = static_cast<float>(Pw.x());
+        float world_y = static_cast<float>(Pw.y());
+        float world_z = static_cast<float>(Pw.z());
+        float world_data[3] = {world_x, world_y, world_z};
+        memcpy(world_cloud_ptr + (i * world_cloud.point_step), world_data, num_channels * sizeof(float));
+    }
+
+    return res.success;
 }

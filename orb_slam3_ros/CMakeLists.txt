@@ -11,8 +11,8 @@ MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}     -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}    -O3")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -march=native")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -march=native -w")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -w")
 
 # Check C++14 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -65,11 +65,14 @@ find_package(Pangolin REQUIRED)
 add_service_files(
   FILES
   SaveMap.srv
+  GetTrackingData.srv
 )
 
 generate_messages(
   DEPENDENCIES
   std_msgs
+  sensor_msgs
+  geometry_msgs
 )
 
 catkin_package (
@@ -170,24 +173,24 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 ### ROS node
-#add_executable(ros_mono
-  #src/ros_mono.cc
-  #src/common.cc
-#)
-#target_link_libraries(ros_mono
-  #${PROJECT_NAME}
-  #${catkin_LIBRARIES}
-#)
+add_executable(ros_mono
+  src/ros_mono.cc
+  src/common.cc
+)
+target_link_libraries(ros_mono
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 
-### ROS node
-#add_executable(ros_mono_inertial 
-  #src/ros_mono_inertial.cc
-  #src/common.cc
-#)
-#target_link_libraries(ros_mono_inertial 
-  #${PROJECT_NAME}
-  #${catkin_LIBRARIES}
-#)
+## ROS node
+add_executable(ros_mono_inertial 
+  src/ros_mono_inertial.cc
+  src/common.cc
+)
+target_link_libraries(ros_mono_inertial 
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 
 ### ROS node
 #add_executable(ros_stereo 

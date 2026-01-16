@@ -6,6 +6,8 @@
 #include <queue>
 #include <thread>
 #include <mutex>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <Eigen/Dense>
 
 #include <ros/ros.h>
@@ -27,6 +29,7 @@
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
+#include <orb_slam3_ros/GetTrackingData.h>
 #include <orb_slam3_ros/SaveMap.h> // This file is created automatically, see here http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv#Creating_a_srv
 
 // ORB-SLAM3-specific libraries
@@ -41,6 +44,11 @@ extern std::string world_frame_id, cam_frame_id, imu_frame_id;
 extern ros::Publisher pose_pub, odom_pub, kf_markers_pub;
 extern ros::Publisher tracked_mappoints_pub, all_mappoints_pub;
 extern image_transport::Publisher tracking_img_pub;
+
+const double CAM_FX = 503.640273;
+const double CAM_FY = 502.167721;
+const double CAM_CX = 312.565456;
+const double CAM_CY = 244.436855;
 
 void setup_services(ros::NodeHandle&, std::string);
 void setup_publishers(ros::NodeHandle&, image_transport::ImageTransport&, std::string);
@@ -59,6 +67,8 @@ void publish_kf_markers(std::vector<Sophus::SE3f>, ros::Time);
 
 bool save_map_srv(orb_slam3_ros::SaveMap::Request&, orb_slam3_ros::SaveMap::Response&);
 bool save_traj_srv(orb_slam3_ros::SaveMap::Request&, orb_slam3_ros::SaveMap::Response&);
+bool get_tracking_data_srv(orb_slam3_ros::GetTrackingData::Request &req,
+                            orb_slam3_ros::GetTrackingData::Response &res);
 
 cv::Mat SE3f_to_cvMat(Sophus::SE3f);
 tf::Transform SE3f_to_tfTransform(Sophus::SE3f);

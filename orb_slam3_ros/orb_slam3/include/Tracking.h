@@ -113,6 +113,9 @@ public:
 
     float GetImageScale();
 
+    // Camera access
+    GeometricCamera* GetCamera();
+
 #ifdef REGISTER_LOOP
     void RequestStop();
     bool isStopped();
@@ -144,6 +147,7 @@ public:
     Frame mLastFrame;
 
     cv::Mat mImGray;
+    cv::Mat mImColor;
 
     // Initialization Variables (Monocular)
     std::vector<int> mvIniLastMatches;
