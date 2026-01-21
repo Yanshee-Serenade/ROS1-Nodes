@@ -18,6 +18,7 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /etc/localtime:/etc/localtime:ro
+      - ./.ros:/root/.ros:rw
     command: bash /init.sh
     tty: true
     stdin_open: true

@@ -20,4 +20,6 @@ then
 fi
 
 # Execute the command passed into this entrypoint
-exec "$@"
+if [ $# -gt 0 ]; then
+    exec "$@"
+fi

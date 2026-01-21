@@ -1,0 +1,7 @@
+<launch>
+    <!-- 1. Load the parameters -->
+    <rosparam command="load" file="/bridge.yaml" />
+
+    <!-- 2. Launch the TCP endpoint -->
+    <include file="$(find ros_tcp_endpoint)/launch/endpoint.launch" />
+</launch>

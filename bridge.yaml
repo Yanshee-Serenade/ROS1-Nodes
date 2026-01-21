@@ -2,27 +2,17 @@ topics:
   # High-bandwidth Point Clouds (1 -> 2)
   - topic: /orb_slam3/world_points
     type: sensor_msgs/msg/PointCloud2
-    queue_size: 4
   - topic: /orb_slam3/camera_points
     type: sensor_msgs/msg/PointCloud2
-    queue_size: 4
 
   # High-bandwidth Image (1 -> 2)
-  - topic: /camera/image_raw
+  - topic: /camera/image_slow
     type: sensor_msgs/msg/Image
-    queue_size: 4
 
   # Camera Info (1 -> 2)
   - topic: /camera/camera_info
     type: sensor_msgs/msg/CameraInfo
-    queue_size: 4
 
   # IMU Data (1 -> 2)
   - topic: /imu/data
     type: sensor_msgs/msg/Imu
-    queue_size: 4
-
-  # Servo Command (Assuming 2 -> 1, but works both ways)
-  - topic: /servo/set
-    type: std_msgs/msg/String
-    queue_size: 4
