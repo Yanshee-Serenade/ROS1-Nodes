@@ -6,7 +6,7 @@ topics:
     type: sensor_msgs/msg/PointCloud2
 
   # High-bandwidth Image (1 -> 2)
-  - topic: /camera/image_slow
+  - topic: /camera/image_raw
     type: sensor_msgs/msg/Image
 
   # Camera Info (1 -> 2)
@@ -16,3 +16,9 @@ topics:
   # IMU Data (1 -> 2)
   - topic: /imu/data
     type: sensor_msgs/msg/Imu
+
+  # TF / Transforms (1 -> 2)
+  - topic: /tf
+    type: tf2_msgs/msg/TFMessage
+  - topic: /tf_static
+    type: tf2_msgs/msg/TFMessage

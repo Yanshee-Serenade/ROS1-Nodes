@@ -4,7 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
-    image: orbslam3_ros:v12
+    image: orbslam3_ros:resurrect
+    user: dockeruser
     container_name: orbslam3
     hostname: orbslam3
     network_mode: "host"
@@ -18,7 +19,7 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /etc/localtime:/etc/localtime:ro
-      - ./.ros:/root/.ros:rw
+      - $HOME/.ros:/home/dockeruser/.ros:rw
     command: bash /init.sh
     tty: true
     stdin_open: true

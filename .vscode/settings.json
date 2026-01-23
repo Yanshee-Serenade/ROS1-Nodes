@@ -1,3 +1,23 @@
 {
-    "ros.distro": "noetic"
+    "ros.distro": "noetic",
+    "workbench.colorCustomizations": {
+        "activityBar.activeBackground": "#003e8a",
+        "activityBar.background": "#003e8a",
+        "activityBar.foreground": "#e7e7e7",
+        "activityBar.inactiveForeground": "#e7e7e799",
+        "activityBarBadge.background": "#000000",
+        "activityBarBadge.foreground": "#e7e7e7",
+        "commandCenter.border": "#e7e7e799",
+        "sash.hoverBorder": "#003e8a",
+        "statusBar.background": "#002757",
+        "statusBar.foreground": "#e7e7e7",
+        "statusBarItem.hoverBackground": "#003e8a",
+        "statusBarItem.remoteBackground": "#002757",
+        "statusBarItem.remoteForeground": "#e7e7e7",
+        "titleBar.activeBackground": "#002757",
+        "titleBar.activeForeground": "#e7e7e7",
+        "titleBar.inactiveBackground": "#00275799",
+        "titleBar.inactiveForeground": "#e7e7e799"
+    },
+    "peacock.remoteColor": "#002757"
 }
